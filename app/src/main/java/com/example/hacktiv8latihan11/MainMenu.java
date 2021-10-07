@@ -12,12 +12,14 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RadioButton;
+import android.widget.TextView;
 
-public class MainMenu extends AppCompatActivity implements View.OnClickListener{
+public class MainMenu extends AppCompatActivity {
     SQLiteDatabase db;
     EditText Nama, NamaPerusahaan, Alamat;
     RadioButton Tetap, Kontrak;
     Button btnSubmit, btnShow;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -34,39 +36,28 @@ public class MainMenu extends AppCompatActivity implements View.OnClickListener{
         btnSubmit = (Button) findViewById(R.id.buttonSubmit);
         btnShow = (Button) findViewById(R.id.buttonShow);
 
-        btnSubmit.setOnClickListener(this);
-        btnShow.setOnClickListener(this);
-
         //Membuat Database
-        db = openOrCreateDatabase("DataDB", Context.MODE_PRIVATE, null);
-        db.execSQL("DROP TABLE IF EXISTS data;");
-        db.execSQL("CREATE TABLE IF NOT EXISTS login(nama VARCHAR, perusahaan VARCHAR, alamat VARCHAR);");
+        db = openOrCreateDatabase("Form", Context.MODE_PRIVATE, null);
+        db.execSQL("DROP TABLE IF EXISTS datapegawai");
+        db.execSQL("CREATE TABLE IF NOT EXISTS datapegawai(nama VARCHAR, perusahaan VARCHAR, alamat VARCHAR, jenis VARCHAR)");
 
+        btnSubmit.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
 
+                insertData(Nama, NamaPerusahaan, Alamat, checkJenis());
+            }
+        });
+
+        btnShow.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                readData();
+            }
+        });
     }
-    public void onClick(View view){
-        if (view == btnSubmit){
-            String nama = Nama.getText().toString();
-            String perusahaan = NamaPerusahaan.getText().toString();
-            String alamat = Alamat.getText().toString();
-            String status = "";
 
-            if(Tetap.isChecked()){
-                status = "Tetap";
-            }
-            if(Kontrak.isChecked()){
-                status = "Kontrak";
-            }
-            if(Tetap.isChecked() &&Kontrak.isChecked()){
-                status = "Tetap Kontrak";
-            }
-
-            db.execSQL("INSERT INTO data (nama,perusahaan, alamat, status) VALUES('"+nama+"','"+perusahaan+"','"+alamat+"','"+status+"');");
-            showMessage("Success", "Record Telah Ditambahkan");
-        }
-    
-    }
-    public void showMessage(String title, String message) {
+    private void showMessage(String title, String message) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setCancelable(true);
         builder.setTitle(title);
@@ -74,4 +65,45 @@ public class MainMenu extends AppCompatActivity implements View.OnClickListener{
         builder.show();
     }
 
+    private void insertData(TextView namaInsert, TextView perusahaanInset, TextView alamatInsert, String jenis) {
+        String QueryHolder = "INSERT INTO datapegawai (nama,perusahaan,alamat,jenis) " +
+                "VALUES('" + namaInsert.getText().toString() + "'," +
+                "'" + perusahaanInset.getText().toString() + "'," +
+                "'" + alamatInsert.getText().toString() + "'," +
+                "'" + jenis + "');";
+        db.execSQL(QueryHolder);
+    }
+
+    private String checkJenis() {
+        int selectedJenis = 0;
+
+        if (Tetap.isChecked()) {
+            return Tetap.getText().toString();
+        } else if (Kontrak.isChecked()) {
+            return Kontrak.getText().toString();
+        } else {
+            return null;
+        }
+    }
+
+    private void readData() {
+        db = getApplicationContext().openOrCreateDatabase("Form", Context.MODE_PRIVATE, null);
+        StringBuffer sb = new StringBuffer();
+
+        Cursor c = db.rawQuery(
+                "SELECT * FROM datapegawai", null
+        );
+
+        if (c.getCount() == 0) {
+            showMessage("Error", "Data kosong!");
+        } else {
+            while (c.moveToNext()) {
+                sb.append("Nama : " + c.getString(0) + "\n");
+                sb.append("Perusahaan : " + c.getString(1) + "\n");
+                sb.append("Alamat : " + c.getString(2) + "\n");
+                sb.append("Jenis Kontrak : " + c.getString(3) + "\n\n");
+            }
+            showMessage("Data Pegawai", sb.toString());
+        }
+    }
 }
